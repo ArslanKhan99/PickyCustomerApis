@@ -1,0 +1,10 @@
+{
+    "database" : {
+        "host": "localhost",
+        "user": "root",
+        "password": "",
+        "database": "picky364_picky_ecommerce",
+        "driver" : "mysql",
+        "multipleStatements" : true
+    }, "sql-file" : true
+}
