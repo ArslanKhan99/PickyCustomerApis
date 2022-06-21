@@ -24,6 +24,14 @@ const product_delivery_details = require("../models/product_delivery_details.js"
 const product_reviews = require("../models/product_reviews.js");
 const onGoingOrderStatus = require("../models/on_going_order_status.js");
 const order_reviews = require("../models/order_review.js");
+const customer_points = require("../models/customer_points.js");
+const customer_addresses = require("../models/customer_addresses.js");
+const promotional_ads = require("../models/promotional_ads.js");
+const categories = require("../models/categories.js");
+const sub_categories = require("../models/sub_categories.js");
+const colorsModel = require("../models/colors.js");
+const sizesModel = require("../models/sizes.js");
+const notificationModel = require("../models/notification.js");
 
 //endModels
 const db = {};
@@ -65,6 +73,14 @@ async function initialize() {
     db.product_reviews = product_reviews(sequelize);
     db.ongoing_order_status = onGoingOrderStatus(sequelize);
     db.order_reviews = order_reviews(sequelize);
+    db.customer_points = customer_points(sequelize);
+    db.customer_addresses = customer_addresses(sequelize);
+    db.promotional_ads = promotional_ads(sequelize);
+    db.categories = categories(sequelize);
+    db.sub_categories = sub_categories(sequelize);
+    db.colorsModel = colorsModel(sequelize);
+    db.sizesModel = sizesModel(sequelize);
+    db.notificationModel = notificationModel(sequelize);
 
 
     //products Relation ships start

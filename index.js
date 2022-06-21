@@ -1,13 +1,15 @@
-'use strict';
 const express = require('express');
 const bodyParser = require('body-parser');
 const dotEnv = require('dotenv');
 
 //routes
-const userRoutes = require('./routes/auth.js');
+const bannerRoutes = require('./routes/banner.js');
 const vendorRoutes = require('./routes/vendor.js');
 const productRoutes = require('./routes/product.js');
 const orderRoutes = require('./routes/order.js');
+const customerRoutes = require('./routes/customer.js');
+const categoryRoutes = require('./routes/category.js');
+const notificationRoutes = require('./routes/notification.js');
 
 //endRoutes
 const mysql = require('mysql');
@@ -44,31 +46,14 @@ app.post('/api/uploadImage', uploadMulter.single('photo'), uploadImage);
 app.use(bodyParser.json());
 app.use(upload.array());
 
-let con = mysql.createConnection({
-      host: "localhost",
-      user: "root",
-      password: "",
-      database: ""
-  });
 
-  con.connect((err) => {
-    if(err){
-      console.log(`Error connecting to Db ${err}`);
-      return;
-    }
-    console.log('Connection established');
-  });
-
-app.use((req,res,next)=>{
-    req.con = con;
-    next();
-});
-
-
-app.use("/api/auth", userRoutes);
-app.use("/api/", orderRoutes);
-app.use("/api/", vendorRoutes);
-app.use("/api/", productRoutes);
+app.use("/api/customer", customerRoutes);
+app.use("/api", bannerRoutes);
+app.use("/api", categoryRoutes);
+app.use("/api", notificationRoutes);
+app.use("/api", orderRoutes);
+app.use("/api", vendorRoutes);
+app.use("/api", productRoutes);
 
 
 app.use(errorHandler);

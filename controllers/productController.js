@@ -2,8 +2,6 @@
 
 const db = require('../database/connection_make.js');
 const Sequelize = require("sequelize");
-const {array} = require("joi");
-const {where} = require("sequelize");
 
 exports.seller_products = async(req,res,next) => {
     const usr = req.user;
