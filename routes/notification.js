@@ -17,7 +17,7 @@ router.get('/notifications', auth, notifications);
 router.get('/user_fcm_token', auth, user_fcm_token);
 
 
-function validateCategoryColors(req, res, next) {
+function sendNotificationSchema(req, res, next) {
     const schema = Joi.object({
         category_id: Joi.string().required(),
     });

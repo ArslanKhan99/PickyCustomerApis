@@ -32,6 +32,8 @@ const sub_categories = require("../models/sub_categories.js");
 const colorsModel = require("../models/colors.js");
 const sizesModel = require("../models/sizes.js");
 const notificationModel = require("../models/notification.js");
+const promo_codes = require("../models/promo_codes.js");
+const clamed_promo_codes = require("../models/clamed_promo_codes.js");
 
 //endModels
 const db = {};
@@ -81,6 +83,8 @@ async function initialize() {
     db.colorsModel = colorsModel(sequelize);
     db.sizesModel = sizesModel(sequelize);
     db.notificationModel = notificationModel(sequelize);
+    db.promo_codes = promo_codes(sequelize);
+    db.clamed_promo_codes = clamed_promo_codes(sequelize);
 
 
     //products Relation ships start
