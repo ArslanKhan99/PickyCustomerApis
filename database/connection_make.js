@@ -106,6 +106,8 @@ async function initialize() {
 
     db.productModel.hasMany(db.product_reviews, {foreignKey: 'product_id', sourceKey: 'id'});
 
+    db.customer.hasMany(db.product_reviews, {foreignKey: 'user_id', sourceKey: 'id'});
+
 
     db.vendor.belongsTo(db.productModel, {foreignKey: 'id'});
 
@@ -124,6 +126,8 @@ async function initialize() {
     db.product_delivery_details.belongsTo(db.productModel, {foreignKey: 'product_id'});
 
     db.product_reviews.belongsTo(db.productModel, {foreignKey: 'product_id'});
+
+    db.product_reviews.belongsTo(db.customer, {foreignKey: 'user_id',as: 'user'});
 
     //products Relation ships end
 

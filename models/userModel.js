@@ -34,7 +34,7 @@ const model = (sequelize) => {
         },
         scopes: {
             // include hash with this scope
-            withHash: { attributes: {}, }
+            withHash: { attributes: {exclude: ['password']}, }
         }
     };
 

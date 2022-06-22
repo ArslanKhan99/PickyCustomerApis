@@ -11,6 +11,7 @@ const customerRoutes = require('./routes/customer.js');
 const categoryRoutes = require('./routes/category.js');
 const notificationRoutes = require('./routes/notification.js');
 const promoRoutes = require('./routes/promo.js');
+const reviewRoutes = require('./routes/review.js');
 
 //endRoutes
 const mysql = require('mysql');
@@ -53,6 +54,7 @@ app.use("/api", bannerRoutes);
 app.use("/api", categoryRoutes);
 app.use("/api", notificationRoutes);
 app.use("/api", promoRoutes);
+app.use("/api", reviewRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", vendorRoutes);
 app.use("/api", productRoutes);

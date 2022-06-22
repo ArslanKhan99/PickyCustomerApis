@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require("../database/connection_make.js");
+const Sequelize = require("sequelize");
 
 exports.uploadImage = (req,res, next) => {
     if(!req.file){
@@ -15,189 +16,254 @@ exports.uploadImage = (req,res, next) => {
 
 }
 
-exports.update_banner = async(req,res, next) => {
-    let usr = req.user;
-    let {banner} = req.body;
-    if(!banner){
-        next('banner field is required');
+exports.seller_details = async(req,res, next) => {
+    let id = req.query.id;
+
+    const vendor = await db.vendor.scope('withHash').findByPk(id);
+
+    const products = await db.productModel.findAll({where: {seller_id: id, status: 3}});
+
+    const reviews = await db.product_reviews.findAll({where: {seller_id: vendor.id}});
+    const order_completed = await db.orderModel.count({where: {seller_id: vendor.id, status: 3}});
+
+    let rating = 0;
+    let ratingTotal = 0;
+    let review_count = 0;
+
+    reviews.forEach((review) => {
+       review_count++;
+       ratingTotal += review.rating;
+    });
+
+    if(review_count > 0){
+        rating = (ratingTotal / review_count).toPrecision(2);
+    }
+
+    vendor.setDataValue('rating', rating);
+    vendor.setDataValue('review_count', review_count);
+    vendor.setDataValue('order_completed', order_completed);
+
+
+    if(!vendor){
+        next("no such vendor");
         return;
     }
 
-    const user = await db.vendor.findByPk(usr.id);
-
-    Object.assign(user, {banner: banner});
-
-    await user.save();
-
-    res.status(200).json({message: "banner Updated Successfully"});
+    res.status(200).json({message: "Vendor information", products: products, seller: vendor});
 
 }
 
-exports.update_logo = async(req,res, next) => {
-    let usr = req.user;
-    let {logo} = req.body;
-    if(!logo){
-        next('banner field is required');
-        return;
+
+exports.seller_products = async(req,res,next) => {
+    const id = req.query.id;
+    let page = req.query.page;
+    let pageSize = req.query.pageSize;
+
+    if(!page){
+        page = 1;
     }
 
-    const user = await db.vendor.findByPk(usr.id);
-
-    Object.assign(user, {logo: logo});
-
-    await user.save();
-
-    res.status(200).json({message: "logo updated Successfully"});
-
-}
-
-exports.add_bank = async(req,res, next) => {
-    let usr = req.user;
-    let {type, title, account_no, ibn, branch_code, branch_address, bank_name} = req.query;
-    let bankDetail = {};
-    bankDetail["type"] = type;
-    bankDetail["title"] = title;
-    bankDetail["account_no"] = account_no;
-    bankDetail["ibn"] = ibn;
-    bankDetail["branch_code"] = branch_code;
-    bankDetail["branch_address"] = branch_address;
-    bankDetail["bank_name"] = bank_name;
-
-    bankDetail["vendor_id"] = usr.id;
-
-    db.bankModel.create(bankDetail);
-
-    res.status(200).json({message: "bank added Successfully"});
-
-}
-
-exports.edit_bank = async(req,res, next) => {
-    let usr = req.user;
-    let {id, type, title, account_no, ibn, branch_code, branch_address, bank_name} = req.query;
-    let bankDetail = {};
-    bankDetail["type"] = type;
-    bankDetail["title"] = title;
-    bankDetail["account_no"] = account_no;
-    bankDetail["ibn"] = ibn;
-    bankDetail["branch_code"] = branch_code;
-    bankDetail["branch_address"] = branch_address;
-    bankDetail["bank_name"] = bank_name;
-    bankDetail["vendor_id"] = usr.id;
-
-    const bankModel = await db.bankModel.findByPk(id);
-
-    if(!bankModel)
-        next('No such bank exists');
-
-    Object.assign(bankModel, bankDetail);
-
-    await bankModel.save();
-
-    res.status(200).json({message: "bank updated Successfully"});
-
-}
-
-exports.update_fcm_token = async(req,res, next) => {
-    let usr = req.user;
-
-    const user = await db.vendor.findByPk(usr.id);
-
-    if(!user) {
-        next('No such user exists');
-        return;
+    if(!pageSize){
+        pageSize = 10;
     }
 
-    Object.assign(user, {token: req.query.token});
+    pageSize = parseInt(`${pageSize}`);
+    page = parseInt(`${page}`);
 
-    await user.save();
-
-    res.status(200).json({message: "token updated Successfully"});
-
-}
-
-exports.payouts = async(req,res, next) => {
-    let usr = req.user;
-
-    const payouts = await db.payoutModel.findAll({where: {seller_id: usr.id}});
-
-    res.status(200).json({message: "Vendor Payouts", payouts: payouts});
-
-}
-
-exports.user_fcm_token = async(req,res, next) => {
-    let usr = req.user;
-    let type = req.params.type;
-    let id = req.params.id;
-    let user;
-    if(`${type}` === 'vendor') {
-        user = await db.vendor.findByPk(id);
-    }else if(`${type}` === 'customer'){
-        user = await db.customer.findByPk(id);
-    }else{
-        next('Invalid value type can be only vendor or customer');
-        return;
-    }
-    if(!user) {
-        next('No such user exists');
-        return;
-    }
-
-    res.status(200).json({message: `FCM token ${type}`, token: user.token});
-
-}
-
-exports.banks_list = async(req,res, next) => {
-    let usr = req.user;
-
-    const bankList = await db.bankModel.findAll({
-        where: {vendor_id: usr.id},
+    const products = await db.productModel.findAll({
+        where: {seller_id: id, parent_id: 0, status: 3},
+        offset: (page-1)*pageSize,
+        limit: pageSize,
+        include: [
+            {
+                model: db.product_reviews,
+                required: false,
+            },
+            {
+                required: false,
+                model: db.vendor
+            },
+            {
+                required: false,
+                model: db.product_images,
+                as: 'images'
+            },
+            {
+                required: false,
+                model: db.product_colors
+            },
+            {
+                required: false,
+                model: db.product_sizes
+            },
+            {
+                required: false,
+                model: db.product_specs
+            },
+            {
+                required: false,
+                model: db.product_adons
+            },
+            {
+                required: false,
+                model: db.ingredients
+            },
+            {
+                required: false,
+                model: db.product_delivery_details,
+                as: "delivery_details"
+            },
+        ],
+        raw: false,
         order: [
             ['id', 'DESC']
         ]
     });
 
-    if(!bankList) {
-        res.status(200).json({
-            message: "vendor bank list",
-            banks: []
-        });
-        return;
+    for(let i = 0; i < products.length; i++){
+        let total_rating = 0;
+        let review_count = 0;
+        for(let j = 0; j < products[i].product_reviews.length; j++){
+            total_rating += products[i].product_reviews[j].rating;
+            review_count++;
+            delete products[i].product_reviews[j];
+        }
+        let rating = review_count > 0 ? total_rating/review_count : 0;
+        products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
+        products[i].setDataValue("review_count" , review_count);
+        products[i].setDataValue("product_reviews" , undefined);
+        await products[i].save();
     }
 
-    res.status(200).json({
-        message: "vendor bank list",
-        banks: bankList
+
+    res.status(200).json(getFormattedPegging(products,page,pageSize));
+
+}
+
+
+exports.seller_sale_products = async(req,res,next) => {
+    const id = req.query.id;
+    let page = req.query.page;
+    let pageSize = req.query.pageSize;
+
+    if(!page){
+        page = 1;
+    }
+
+    if(!pageSize){
+        pageSize = 10;
+    }
+
+    pageSize = parseInt(`${pageSize}`);
+    page = parseInt(`${page}`);
+
+    const saleProducts = await db.saleProductModel.findAll({attributes: ['product_id']});
+
+    const productsIds = [];
+
+    saleProducts.forEach((v)=>{
+        productsIds.push(v.product_id);
     });
-}
 
-exports.set_delivery_areas =  async(req,res,next)=> {
-    let user = req.user;
 
-    let {areas} = req.body;
+    console.log(productsIds);
 
-    if (!areas) {
-        areas = "";
+    const products = await db.productModel.findAll({
+        where: {
+            id: {
+                [Sequelize.Op.in]: productsIds
+            },
+            seller_id: id,
+            parent_id: 0,
+            status: 3
+        },
+        include: [
+            {
+                model: db.product_reviews,
+                required: false,
+            },
+            {
+                required: false,
+                model: db.vendor
+            },
+            {
+                required: false,
+                model: db.product_images,
+                as: 'images'
+            },
+            {
+                required: false,
+                model: db.product_colors
+            },
+            {
+                required: false,
+                model: db.product_sizes
+            },
+            {
+                required: false,
+                model: db.product_specs
+            },
+            {
+                required: false,
+                model: db.product_adons
+            },
+            {
+                required: false,
+                model: db.ingredients
+            },
+            {
+                required: false,
+                model: db.product_delivery_details,
+                as: "delivery_details"
+            },
+        ],
+        raw: false,
+        order: [
+            ['id', 'DESC']
+        ]
+    });
+
+    for(let i = 0; i < products.length; i++){
+        let total_rating = 0;
+        let review_count = 0;
+        for(let j = 0; j < products[i].product_reviews.length; j++){
+            total_rating += products[i].product_reviews[j].rating;
+            review_count++;
+            delete products[i].product_reviews[j];
+        }
+        let rating = review_count > 0 ? total_rating/review_count : 0;
+        products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
+        products[i].setDataValue("review_count" , review_count);
+        products[i].setDataValue("product_reviews" , undefined);
+        await products[i].save();
     }
 
-    const deliveryAreas = await db.deliveryModel.findOne({where: {vendor_id: user.id}});
+    res.status(200).json({message: "On sale products", sale_products: products});
 
-    if (!deliveryAreas) {
-        if (areas) {
-            let data = {
-                "vendor_id": user.id,
-                "areas": areas
-            }
-            db.deliveryModel.create(data);
-        }
-    } else {
-        if (areas) {
-            Object.assign(deliveryAreas, {areas: areas});
-            await deliveryAreas.save();
-        } else {
-            await deliveryAreas.destroy();
-        }
-    }
-
-    res.status(200).json({message: "Delivery areas updated successfully"});
 }
+
+
+function getFormattedPegging(products, page, pageSize){
+    return {
+        message: "Seller All products",
+        products: {
+            current_page: page,
+            data: products,
+            first_page_url: "/?page=1",
+            from: ((page-1)*pageSize)+1,
+            last_page: page,
+            last_page_url: "/?page=1",
+            links:[
+
+            ],
+            next_page_url: `/?page=${page+1}`,
+            path: '/',
+            per_page: pageSize,
+            previous_page_url: `/?page=${page-1}`,
+            to: page*pageSize,
+            total: products.length
+        }
+    };
+}
+
 
