@@ -1,9 +1,9 @@
 const {DataTypes} = require('sequelize');
 
-const saleProductModel = (sequelize) => {
+const customer_whishlist = (sequelize) => {
     const attributes = {
         id: { type: DataTypes.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
-        sale_id: { type: DataTypes.INTEGER, allowNull: false},
+        user_id: { type: DataTypes.INTEGER, allowNull: false},
         product_id: { type: DataTypes.INTEGER, allowNull: false},
     };
 
@@ -13,7 +13,7 @@ const saleProductModel = (sequelize) => {
         underscored: true,
     };
 
-    return sequelize.define('sale_products', attributes, options);
+    return sequelize.define('customer_whishlist', attributes, options);
 }
 
-module.exports = saleProductModel;
+module.exports = customer_whishlist;

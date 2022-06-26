@@ -7,7 +7,7 @@ exports.order_by_status = async (req,res,next) => {
     const orderModel = await db.orderModel.findAll({
             where:
                 {
-                    seller_id: usr.id,
+                    user_id: usr.id,
                     status: status
                 },
             include: [
@@ -22,6 +22,9 @@ exports.order_by_status = async (req,res,next) => {
                         },
                     ]
 
+                },
+                {
+                    model: db.order_reviews
                 }
             ]
         }
@@ -43,6 +46,12 @@ exports.order_by_status = async (req,res,next) => {
         }
         orderModel[j].setDataValue('products', orderModel[j].order_details);
         orderModel[j].setDataValue('order_details', undefined);
+        if(orderModel[j].order_reviews.length > 0) {
+            orderModel[j].setDataValue('can_review', false);
+        }else{
+            orderModel[j].setDataValue('can_review', true);
+        }
+        orderModel[j].setDataValue('order_reviews', undefined);
         await orderModel[j].save();
     }
 
@@ -68,7 +77,10 @@ exports.order_details = async (req,res,next) => {
 
                 },
                 {
-                    model: db.customer
+                    model: db.vendor
+                },
+                {
+                    model: db.order_reviews
                 }
             ]
         }
@@ -89,6 +101,15 @@ exports.order_details = async (req,res,next) => {
     }
     orderModel.setDataValue('products', orderModel.order_details);
     orderModel.setDataValue('order_details', undefined);
+    orderModel.setDataValue('seller', orderModel.vendor);
+    orderModel.setDataValue('vendor', undefined);
+
+    if(orderModel.order_reviews.length > 0) {
+        orderModel.setDataValue('can_review', false);
+    }else{
+        orderModel.setDataValue('can_review', true);
+    }
+    orderModel.setDataValue('order_reviews', undefined);
     await orderModel.save();
 
     res.status(200).json({message: "Vendor Orders", order: [orderModel]});
@@ -115,7 +136,6 @@ exports.track_order = async (req,res,next) => {
     orderModel.setDataValue('order_status', orderModel.status);
     orderModel.setDataValue('status', undefined);
     let ongoing_status = [];
-    console.log(orderModel);
     for(let i = orderModel.ongoing_order_statuses.length-1 ; i >= 0 ; i--) {
         ongoing_status.push(orderModel.ongoing_order_statuses[i]);
     }
@@ -125,17 +145,64 @@ exports.track_order = async (req,res,next) => {
     res.status(200).json({message: "Order Track", status: orderModel});
 }
 
-exports.vendor_order_reviews = async (req,res,next) => {
+exports.check_delivery_in_area = async (req,res,next) => {
     let usr = req.user;
+    let seller_id = req.params.seller_id;
+    let area = req.params.area;
 
-    const orderReviews = await db.order_reviews.findAll({
-           where: {
-               vendor_id: usr.id,
-           }
+    let delivery_areas = await db.deliveryModel.findOne({where: {vendor_id: seller_id}});
+
+    let exists = false;
+    if(delivery_areas){
+        let areas = delivery_areas.areas.split(',');
+        for(let i = 0; i < areas.length; i++) {
+            if(areas[i] === `${area}`){
+                exists = true;
+                break;
+            }
         }
-    );
+    }else{
+        res.status(400).json({message: "User do not have any delivery area", status: false});
+        return;
+    }
 
-    res.status(200).json({message: "Vendor order reviews", reviews: orderReviews});
+    res.status(200).json({message: exists ? "User Can deliver in this area":"Seller can not deliver in this area.", status: exists});
+}
+
+exports.change_payment_method = async (req,res,next) => {
+    let usr = req.user;
+    let order_id = req.body.order_id;
+    let payment_method = req.body.payment_method.toLowerCase();
+
+    let order = await db.orderModel.findByPk(order_id);
+
+    if(!order) {
+        next('No such order exists');
+        return;
+    }
+
+    if(payment_method === 'cod'){
+        Object.assign(order, {payment_method:'cod'});
+        Object.assign(order, {status: 1});
+        await order.save();
+        res.status(200).json({message: "Order payment method changed successfully"});
+    }else if(payment_method === 'wallet' || payment_method === 'point'){
+        let totalBill = (order.sub_total+order.delivery_charges) - order.coupon_price;
+        let result = await deductionPoints(usr.id, totalBill);
+        if(result){
+            Object.assign(order, {payment_method: payment_method});
+            Object.assign(order, {payment_status: "completed"});
+            Object.assign(order, {status: 1});
+            await order.save();
+            res.status(200).json({message: "Order payment method changed successfully"});
+        }else{
+            res.status(400).json({message: "Insufficient balance"});
+        }
+    }else{
+        res.status(400).json({message: "invalid payment method"});
+    }
+
+
 }
 
 exports.change_order_status = async (req,res,next) => {
@@ -155,6 +222,19 @@ exports.change_order_status = async (req,res,next) => {
     await status_order.save();
 
     res.status(200).json({message: "Order Status changed successfully"});
+}
+
+exports.vendor_order_reviews = async (req,res,next) => {
+    let usr = req.user;
+
+    const orderReviews = await db.order_reviews.findAll({
+           where: {
+               vendor_id: usr.id,
+           }
+        }
+    );
+
+    res.status(200).json({message: "Vendor order reviews", reviews: orderReviews});
 }
 
 exports.add_ongoing_order_status = async (req,res,next) => {
@@ -178,4 +258,92 @@ exports.add_ongoing_order_status = async (req,res,next) => {
     }
 
     res.status(200).json({message: "Order Status changed successfully"});
+}
+
+exports.add_order_review = async (req, res, next) => {
+    let data = req.body;
+    let user = req.user;
+    data.user_id = user.id;
+
+    let order = await db.orderModel.findByPk(data.order_id);
+
+    if(!order){
+        next('Order not found');
+        return;
+    }
+
+    await db.order_reviews.create(data);
+
+    res.status(200).json({message: "review successfully created"});
+}
+
+exports.checkout = async (req,res,next) => {
+    let data = req.body;
+    let user = req.user;
+
+    let order = {
+        'user_id':user.id,
+        'seller_id':data.seller_id,
+        'sub_total':data.sub_total,
+        'delivery_charges':data.delivery_charges,
+        'delivered_by':'0',
+        'coupon_id':data.coupon_id,
+        'coupon_price':data.coupon_price,
+        'full_name':data.full_name,
+        'phone':data.phone,
+        'email':data.email,
+        'province':data.province,
+        'city':data.city,
+        'area':data.area,
+        'address':data.address,
+        'note': data.note,
+        'payment_method':data.payment_method,
+        'transaction_no':'',
+        'payment_status':"pending",
+        'status': data.payment_method.toLowerCase() === "cod" ? "1" : "0",
+        'ordered_at': new Date().getTime(),
+    };
+
+    if(data.use_points){
+        let total_amount = (order.sub_total + order.delivery_charges) - order.coupon_price;
+        order.paid_amount  = await checkDeductionPartialPoints(user.id, total_amount);
+    }
+
+    let result_order_create = await db.orderModel.create(order);
+
+    for(let i = 0; i < data.products.length; i++) {
+        data.products[i].order_id = result_order_create.id;
+        await db.orderDetailModel.create(data.products[i]);
+    }
+
+    res.status(200).json({message: "Order created successfully", order_id: result_order_create.id});
+}
+
+async function deductionPoints(user_id, amount){
+    let user = await db.customer.findByPk(user_id);
+
+    if(user.points >= amount){
+        Object.assign(user, {points: user.points - amount});
+        await user.save();
+        return true;
+    }else{
+        return false;
+    }
+}
+
+async function checkDeductionPartialPoints(user_id, amount){
+    let user = await db.customer.findByPk(user_id);
+
+    if(user.points >= amount){
+        Object.assign(user, {points: user.points - amount});
+        await user.save();
+        return amount;
+    }else if(user.points > 0){
+        let points = user.points;
+        Object.assign(user, {points: 0});
+        await user.save();
+        return points;
+    }else{
+        return 0;
+    }
 }

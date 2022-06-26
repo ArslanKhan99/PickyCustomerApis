@@ -34,6 +34,10 @@ const sizesModel = require("../models/sizes.js");
 const notificationModel = require("../models/notification.js");
 const promo_codes = require("../models/promo_codes.js");
 const clamed_promo_codes = require("../models/clamed_promo_codes.js");
+const feature_products = require("../models/feature_products.js");
+const recent_visited_products = require("../models/recent_visited_products.js");
+const customer_whishlist = require("../models/customer_whishlist.js");
+const salesModel = require("../models/salesModel.js");
 
 //endModels
 const db = {};
@@ -85,6 +89,10 @@ async function initialize() {
     db.notificationModel = notificationModel(sequelize);
     db.promo_codes = promo_codes(sequelize);
     db.clamed_promo_codes = clamed_promo_codes(sequelize);
+    db.feature_products = feature_products(sequelize);
+    db.recent_visited_products = recent_visited_products(sequelize);
+    db.customer_whishlist = customer_whishlist(sequelize);
+    db.salesModel = salesModel(sequelize);
 
 
     //products Relation ships start
@@ -135,12 +143,27 @@ async function initialize() {
 
     db.ongoing_order_status.belongsTo(db.orderModel, {foreignKey: 'order_id'});
 
+    //salesModel Relation ships end
+
+    db.salesModel.hasMany(db.saleProductModel, {foreignKey: 'sale_id'});
+
+    db.saleProductModel.belongsTo(db.salesModel, {foreignKey: 'sale_id'});
+
+
+    db.saleProductModel.hasOne(db.productModel, {foreignKey: 'id'});
+
+    db.productModel.belongsTo(db.saleProductModel, {foreignKey: 'id'});
+
 
     db.orderModel.hasMany(db.orderDetailModel, {foreignKey: "order_id"});
 
     db.orderModel.hasOne(db.customer, {foreignKey: "id"});
 
     db.customer.belongsTo(db.orderModel, {foreignKey: "id"});
+
+    db.orderModel.hasOne(db.vendor, {foreignKey: "id"});
+
+    db.vendor.belongsTo(db.orderModel, {foreignKey: "id"});
 
     db.orderDetailModel.belongsTo(db.orderModel, {foreignKey:"order_id"});
 
@@ -152,6 +175,23 @@ async function initialize() {
 
     db.product_images.belongsTo(db.orderDetailModel, {foreignKey:"product_id"});
 
+
+    //categories with products start
+
+    db.categories.hasMany(db.productModel, {foreignKey: 'category_id', sourceKey: 'id'});
+
+    db.productModel.belongsTo(db.categories, {foreignKey: 'category_id'});
+
+    //categories with products end
+
+
+    //order vs reviews
+
+    db.orderModel.hasMany(db.order_reviews, {foreignKey: 'order_id'});
+
+    db.order_reviews.belongsTo(db.orderModel, {foreignKey: 'order_id'});
+
+    //end order vs reviews
     // sync all models with database
     await sequelize.sync();
 }

@@ -12,6 +12,7 @@ const categoryRoutes = require('./routes/category.js');
 const notificationRoutes = require('./routes/notification.js');
 const promoRoutes = require('./routes/promo.js');
 const reviewRoutes = require('./routes/review.js');
+const salesRoutes = require('./routes/sales.js');
 
 //endRoutes
 const mysql = require('mysql');
@@ -58,6 +59,7 @@ app.use("/api", reviewRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", vendorRoutes);
 app.use("/api", productRoutes);
+app.use("/api", salesRoutes);
 
 
 app.use(errorHandler);

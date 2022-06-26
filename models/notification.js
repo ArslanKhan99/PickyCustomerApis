@@ -8,7 +8,8 @@ const notificationModel = (sequelize) => {
         title: { type: DataTypes.STRING, allowNull: false},
         body: { type: DataTypes.TEXT, allowNull: false},
         notification_type: { type: DataTypes.STRING, allowNull: false},
-        link_id: { type: DataTypes.INTEGER, allowNull: false}
+        link_id: { type: DataTypes.INTEGER, allowNull: false},
+        mark_as_read: { type: DataTypes.INTEGER, allowNull: true, defaultValue:0},
     };
 
     const options = {

@@ -5,7 +5,7 @@ const {DataTypes} = require('sequelize');
 const orderModel = (sequelize) => {
     const attributes = {
         id: { type: DataTypes.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true,},
-        delivered_by: { type: DataTypes.INTEGER, allowNull: false},
+        delivered_by: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
         seller_id: { type: DataTypes.INTEGER,allowNull: false},
         user_id: { type: DataTypes.INTEGER, allowNull: false },
         sub_total: { type: DataTypes.DOUBLE, allowNull: false },

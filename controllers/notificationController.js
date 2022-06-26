@@ -44,6 +44,14 @@ exports.notifications = async(req, res, next)=>{
         }});
 };
 
+exports.get_unread_notifications_count = async(req, res, next)=>{
+    let user = req.user;
+
+    const notifications = await db.notificationModel.count({where: {user_id: user.id, mark_as_read: 0}});
+
+    res.status(200).json({message: "notification count", notification_count: notifications});
+};
+
 
 exports.user_fcm_token = async(req,res, next) => {
     let usr = req.user;
@@ -64,5 +72,20 @@ exports.user_fcm_token = async(req,res, next) => {
     }
 
     res.status(200).json({message: `FCM token ${type}`, token: user.token});
+
+}
+
+exports.mark_read_notifications = async(req,res, next) => {
+    let usr = req.user;
+    let status = req.params.status;
+    let id = req.params.id;
+
+    if(`${id}` !== '0') {
+        await db.notificationModel.update({mark_as_read: status},{where: {id: id}});
+    }else if(`${id}` === '0'){
+        await db.notificationModel.update({mark_as_read: status},{where: {user_id: usr.id}});
+    }
+
+    res.status(200).json({message: 'Status changed successfully'});
 
 }
