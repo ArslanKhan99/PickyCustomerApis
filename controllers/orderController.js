@@ -347,3 +347,154 @@ async function checkDeductionPartialPoints(user_id, amount){
         return 0;
     }
 }
+
+exports.add_to_cart = async (req,res,next) => {
+    let user = req.user;
+    let product_id = req.query.product_id;
+    let quantity = req.query.quantity;
+
+    let product = await db.productModel.findByPk(product_id);
+
+    if(!product) {
+        next('No such product found');
+        return;
+    }
+
+    let aPro = await db.customer_cart.findOne({where: {product_id: product.id, user_id: user.id}});
+
+    if(!aPro){
+        let data = {
+            user_id: user.id,
+            product_id: product_id,
+            quantity: quantity,
+            size: product.size,
+            color: product.color,
+        };
+
+        let result = db.customer_cart.create(data);
+
+    }else{
+        let total_quantity = parseInt(`${aPro.quantity}`) + parseInt(`${+quantity}`);
+        Object.assign(aPro, {quantity: total_quantity});
+        await aPro.save();
+    }
+
+    res.status(200).json({message: "added to cart"});
+
+}
+
+
+exports.cart_items = async (req,res,next) => {
+    let user = req.user;
+
+    let cart_items = await db.customer_cart.findAll(
+        {
+            where: {
+                user_id: user.id
+            },
+            include: [
+                {
+                    model: db.productModel,
+                    include: [
+                        {
+                            model: db.product_reviews,
+                            required: false,
+                        },
+                        {
+                            required: false,
+                            model: db.vendor
+                        },
+                        {
+                            required: false,
+                            model: db.product_images,
+                            as: 'images'
+                        },
+                        {
+                            required: false,
+                            model: db.product_colors
+                        },
+                        {
+                            required: false,
+                            model: db.product_sizes
+                        },
+                        {
+                            required: false,
+                            model: db.product_specs
+                        },
+                        {
+                            required: false,
+                            model: db.product_adons
+                        },
+                        {
+                            required: false,
+                            model: db.ingredients
+                        },
+                        {
+                            required: false,
+                            model: db.product_delivery_details,
+                            as: "delivery_details"
+                        },
+                    ],
+                }
+            ]
+        }
+    );
+
+    let products = [];
+
+    for (let i = 0; i < cart_items.length; i++) {
+        let pro = cart_items[i].product;
+        cart_items[i].setDataValue('product', undefined);
+        pro.setDataValue('selected_variation' , [cart_items[i]]);
+        await pro.save();
+        products.push(pro);
+    }
+
+    let pModel = await addRatings(products);
+
+    res.status(200).json({message: "Cart", products: pModel});
+
+}
+
+async function addRatings(products){
+    for(let i = 0; i < products.length; i++){
+        let total_rating = 0;
+        let review_count = 0;
+        for(let j = 0; j < products[i].product_reviews.length; j++){
+            total_rating += products[i].product_reviews[j].rating;
+            review_count++;
+            delete products[i].product_reviews[j];
+        }
+        let rating = review_count > 0 ? total_rating/review_count : 0;
+        products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
+        products[i].setDataValue("review_count" , review_count);
+        products[i].setDataValue("product_reviews" , undefined);
+        await products[i].save();
+    }
+    return products;
+}
+
+
+exports.remove_cart = async (req,res,next) => {
+    let user = req.user;
+    let product_id = req.params.product_id;
+
+    let product = await db.productModel.findByPk(product_id);
+
+    if(!product) {
+        next('No such product found');
+        return;
+    }
+
+    let result = db.customer_cart.destroy({where: {product_id: product.id, user_id: user.id}});
+
+    res.status(200).json({message: "removed from cart"});
+}
+
+exports.empty_cart = async (req,res,next) => {
+    let user = req.user;
+
+    let result = db.customer_cart.destroy({where: {user_id: user.id}});
+
+    res.status(200).json({message: "removed from cart"});
+}

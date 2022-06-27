@@ -1317,7 +1317,6 @@ exports.product_details = async(req, res, next) => {
                 parent_id: id
             }
         ),
-        group: ['id'],
         include: [
             {
                 model: db.product_reviews,
@@ -1364,23 +1363,10 @@ exports.product_details = async(req, res, next) => {
         ]
     });
 
-    for(let i = 0; i < products.length; i++){
-        let total_rating = 0;
-        let review_count = 0;
-        for(let j = 0; j < products[i].product_reviews.length; j++){
-            total_rating += products[i].product_reviews[j].rating;
-            review_count++;
-            delete products[i].product_reviews[j];
-        }
-        let rating = review_count > 0 ? total_rating/review_count : 0;
-        products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
-        products[i].setDataValue("review_count" , review_count);
-        products[i].setDataValue("product_reviews" , undefined);
-        await products[i].save();
-    }
+    let pModel = await addRatings(products);
 
 
-    res.status(200).json(getFormattedPegging(products,1,100));
+    res.status(200).json(getFormattedPegging(pModel,1,100));
 }
 
 //Supporting functions

@@ -8,7 +8,11 @@ const {
     add_order_review,
     change_order_status,
     add_ongoing_order_status,
-    checkout
+    checkout,
+    add_to_cart,
+    remove_cart,
+    empty_cart,
+    cart_items
 } = require('../controllers/orderController.js');
 const {auth} = require('../middleware/auth.js');
 const Joi = require("joi");
@@ -37,11 +41,27 @@ router.post('/add_order_review', auth, addReviewSchema, add_order_review);
 
 router.post('/checkout', auth, addOrderSchema, checkout);
 
+router.post('/customer/add_to_cart', auth, addCartSchema, add_to_cart);
+
+router.get('/customer/cart_items', auth, cart_items);
+
+router.delete('/customer/remove_cart/:product_id', auth, remove_cart);
+
+router.delete('/customer/empty_cart', auth, empty_cart);
+
 
 function orderStatusSchema(req, res, next) {
       const schema = Joi.object({
             id: Joi.number().required(),
             status: Joi.number().required(),
+        });
+    validateRequestQuery(req, next, schema);
+}
+
+function addCartSchema(req, res, next) {
+      const schema = Joi.object({
+          product_id: Joi.number().required(),
+          quantity: Joi.number().required(),
         });
     validateRequestQuery(req, next, schema);
 }

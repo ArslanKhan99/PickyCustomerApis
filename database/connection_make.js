@@ -38,6 +38,7 @@ const feature_products = require("../models/feature_products.js");
 const recent_visited_products = require("../models/recent_visited_products.js");
 const customer_whishlist = require("../models/customer_whishlist.js");
 const salesModel = require("../models/salesModel.js");
+const customer_cart = require("../models/customer_cart.js");
 
 //endModels
 const db = {};
@@ -93,6 +94,7 @@ async function initialize() {
     db.recent_visited_products = recent_visited_products(sequelize);
     db.customer_whishlist = customer_whishlist(sequelize);
     db.salesModel = salesModel(sequelize);
+    db.customer_cart = customer_cart(sequelize);
 
 
     //products Relation ships start
@@ -190,6 +192,12 @@ async function initialize() {
     db.orderModel.hasMany(db.order_reviews, {foreignKey: 'order_id'});
 
     db.order_reviews.belongsTo(db.orderModel, {foreignKey: 'order_id'});
+
+    //cart vs products
+
+    db.customer_cart.hasOne(db.productModel, {foreignKey: 'id', sourceKey: 'product_id'});
+
+    db.productModel.belongsTo(db.customer_cart, {foreignKey: 'id', sourceKey: 'product_id'});
 
     //end order vs reviews
     // sync all models with database
