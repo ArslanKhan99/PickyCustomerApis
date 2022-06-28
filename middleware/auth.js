@@ -10,7 +10,8 @@ exports.auth = (req, res, next) => {
     return res.status(401).json({message: "Authorization Bearer token is required!"});
   }
   try {
-    token = token.replace("Bearer ", "");
+    token = token.replace("Bearer", "");
+    token = token.replace(" ", "");
     const decoded = jwt.verify(token, `${config.TOKEN_KEY}`);
     req.user = decoded.sub;
   } catch (err) {
