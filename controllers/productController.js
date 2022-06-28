@@ -1369,6 +1369,92 @@ exports.product_details = async(req, res, next) => {
     res.status(200).json(getFormattedPegging(pModel,1,100));
 }
 
+exports.reorder_products = async(req, res, next) => {
+    let user = req.user;
+
+    let orders = await db.orderModel.findAll({where: {user_id: user.id}});
+
+    let order_ids = [];
+
+    orders.forEach(order => {
+       order_ids.push(order.id);
+    });
+
+    let order_details = await db.orderDetailModel.findAll({
+        where: {
+            order_id: order_ids,
+        }
+    });
+
+    let product_ids = [];
+
+    order_details.forEach(o_details => {
+       product_ids.push(o_details.product_id);
+    });
+
+    const products = await db.productModel.findAll({
+        where: {
+            id: product_ids
+        },
+        include: [
+            {
+                model: db.product_reviews,
+                required: false,
+            },
+            {
+                required: false,
+                model: db.vendor
+            },
+            {
+                required: false,
+                model: db.product_images,
+                as: 'images'
+            },
+            {
+                required: false,
+                model: db.product_colors
+            },
+            {
+                required: false,
+                model: db.product_sizes
+            },
+            {
+                required: false,
+                model: db.product_specs
+            },
+            {
+                required: false,
+                model: db.product_adons
+            },
+            {
+                required: false,
+                model: db.ingredients
+            },
+            {
+                required: false,
+                model: db.product_delivery_details,
+                as: "delivery_details"
+            },
+        ],
+        raw: false,
+        order: [
+            ['id', 'DESC']
+        ]
+    });
+
+    for(let i = 0; i < products.length; i++) {
+        if(products[i].parent_id !== 0){
+            products[i] = await db.productModel.findByPk(products[i].parent_id);
+            await products[i].save();
+        }
+    }
+
+    let pModel = await addRatings(products);
+
+
+    res.status(200).json({message: "Purchased products", products: pModel});
+}
+
 //Supporting functions
 
 async function addRatings(products){

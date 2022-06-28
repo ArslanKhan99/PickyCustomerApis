@@ -19,6 +19,7 @@ const {
     wishlist_items,
     top_sale_products,
     product_details,
+    reorder_products
     } = require('../controllers/productController.js');
 const {auth} = require('../middleware/auth.js');
 
@@ -59,6 +60,8 @@ router.post('/customer/wishlist_items', auth, wishlist_items);
 router.delete('/customer/remove_wishlist/:id', auth, remove_wishlist);
 
 router.get('/product_details/:id', product_details);
+
+router.get('/reorder_products', auth, reorder_products);
 
 
 
