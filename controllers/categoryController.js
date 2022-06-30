@@ -14,7 +14,12 @@ exports.top_categories = async(req, res, next)=>{
         {
             where: {
                 id: [6,7]
-            }
+            },
+            include:[
+                {
+                    model: db.sub_categories
+                }
+            ]
         }
     );
 
@@ -27,7 +32,7 @@ exports.get_sub_categories = async(req, res, next)=>{
     const sub_categories = await db.sub_categories.findAll(
         {
             where: {
-                id: id
+                category_id: id
             }
         }
     );

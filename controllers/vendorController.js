@@ -21,7 +21,56 @@ exports.seller_details = async(req,res, next) => {
 
     const vendor = await db.vendor.scope('withHash').findByPk(id);
 
-    const products = await db.productModel.findAll({where: {seller_id: id, status: 3}});
+    const products = await db.productModel.findAll(
+        {
+            where: {
+                seller_id: id, status: 3
+            },
+            limit: 20,
+            include: [
+                {
+                    model: db.product_reviews,
+                    required: false,
+                },
+                {
+                    required: false,
+                    model: db.vendor
+                },
+                {
+                    required: false,
+                    model: db.product_images,
+                    as: 'images'
+                },
+                {
+                    required: false,
+                    model: db.product_colors
+                },
+                {
+                    required: false,
+                    model: db.product_sizes
+                },
+                {
+                    required: false,
+                    model: db.product_specs
+                },
+                {
+                    required: false,
+                    model: db.product_adons
+                },
+                {
+                    required: false,
+                    model: db.ingredients
+                },
+                {
+                    required: false,
+                    model: db.product_delivery_details,
+                    as: "delivery_details"
+                },
+            ],
+        },
+    );
+
+    let pModel = await addRatings(products);
 
     const reviews = await db.product_reviews.findAll({where: {seller_id: vendor.id}});
     const order_completed = await db.orderModel.count({where: {seller_id: vendor.id, status: 3}});
@@ -36,10 +85,10 @@ exports.seller_details = async(req,res, next) => {
     });
 
     if(review_count > 0){
-        rating = (ratingTotal / review_count).toPrecision(2);
+        rating = (ratingTotal / review_count);
     }
 
-    vendor.setDataValue('rating', rating);
+    vendor.setDataValue('rating', parseFloat(rating.toFixed(2))+1/100);
     vendor.setDataValue('review_count', review_count);
     vendor.setDataValue('order_completed', order_completed);
 
@@ -49,10 +98,35 @@ exports.seller_details = async(req,res, next) => {
         return;
     }
 
-    res.status(200).json({message: "Vendor information", products: products, seller: vendor});
+    res.status(200).json({message: "Vendor information", products: pModel, seller: vendor});
 
 }
 
+async function addRatings(products){
+    let spliceIds = [];
+    for(let i = 0; i < products.length; i++){
+        if(products[i].parent_id === 0 && `${products[i].status}` === '3') {
+            let total_rating = 0;
+            let review_count = 0;
+            for (let j = 0; j < products[i].product_reviews.length; j++) {
+                total_rating += products[i].product_reviews[j].rating;
+                review_count++;
+                delete products[i].product_reviews[j];
+            }
+            let rating = review_count > 0 ? total_rating / review_count : 0;
+            products[i].setDataValue("rating", parseFloat(rating.toPrecision(2)));
+            products[i].setDataValue("review_count", review_count);
+            products[i].setDataValue("product_reviews", undefined);
+            await products[i].save();
+        }else{
+            spliceIds.push(i);
+        }
+    }
+    for(let i = spliceIds.length -1; i >= 0; i--){
+        products.splice(spliceIds[i],1);
+    }
+    return products;
+}
 
 exports.seller_products = async(req,res,next) => {
     const id = req.query.id;

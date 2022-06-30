@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const dotEnv = require('dotenv');
+const admin = require("firebase-admin");
 
 //routes
 const bannerRoutes = require('./routes/banner.js');
@@ -15,13 +16,19 @@ const reviewRoutes = require('./routes/review.js');
 const salesRoutes = require('./routes/sales.js');
 const braintreeRoutes = require('./routes/braintree.js');
 
+let serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://picky-803de-default-rtdb.firebaseio.com"
+});
+
+
 //endRoutes
-const mysql = require('mysql');
 const path = require('path');
 const errorHandler = require('./middleware/errorHandler.js');
 const multer = require('multer');
 const {uploadImage} = require("./controllers/vendorController.js");
-const product = require("./routes/product.js");
 
 let storage = multer.diskStorage({
     destination: (req, file, callBack) => {
@@ -45,10 +52,16 @@ dotEnv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+
+
 app.post('/api/uploadImage', uploadMulter.single('photo'), uploadImage);
 
 app.use(bodyParser.json());
 app.use(upload.array());
+app.use(function(req, res, next) {
+    req.firebase_admin = admin;
+    next();
+});
 
 
 app.use("/api/customer", customerRoutes);

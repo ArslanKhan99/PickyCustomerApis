@@ -3,7 +3,7 @@ const db = require('../database/connection_make.js');
 exports.notifications = async(req, res, next)=>{
     let user = req.user;
 
-    const notifications = await db.notificationModel.findAll({where: {user_id: user.id}});
+    const notifications = await db.notificationModel.findAll({where: {user_id: user.id}, order: [['id', 'DESC']]});
 
     res.status(200).json({"message": "notifications",
         "notifications": {
@@ -57,6 +57,7 @@ exports.user_fcm_token = async(req,res, next) => {
     let usr = req.user;
     let type = req.params.type;
     let id = req.params.id;
+
     let user;
     if(`${type}` === 'vendor') {
         user = await db.vendor.findByPk(id);
@@ -89,3 +90,70 @@ exports.mark_read_notifications = async(req,res, next) => {
     res.status(200).json({message: 'Status changed successfully'});
 
 }
+
+
+exports.sendNotification = async (admin, user_id, title, body, notification_type, link_id, type) => {
+    let token = "";
+    if(type === 0){
+        let user = await db.customer.findByPk(user_id);
+        if(user){
+            token = user.token;
+        }
+    }else{
+        let user = await db.vendor.findByPk(user_id);
+        if(user){
+            token = user.token;
+        }
+    }
+
+    if(token !== ""){
+        const messages = [];
+        messages.push({
+            notification: {title: title, body: body},
+            token: token,
+            apns:{
+                payload:{
+                    aps:{
+                        sound:"default",
+                    },
+                },
+            },
+        });
+        admin.messaging().sendAll(messages)
+            .then(async(response) => {
+                if(type === 0) {
+                    await saveNotificationUser({
+                        user_id: user_id,
+                        date_time: new Date().getTime(),
+                        title: title,
+                        body: body,
+                        notification_type: notification_type,
+                        link_id: link_id??0,
+                        mark_as_read: 0
+                    });
+                }else{
+                    await saveNotificationVendor({
+                        vendor_id: user_id,
+                        date_time: new Date().getTime(),
+                        title: title,
+                        body: body,
+                        notification_type: notification_type,
+                        link_id: link_id??0,
+                        mark_as_read: 0
+                    });
+                }
+            });
+    }
+}
+
+saveNotificationUser = async (data) => {
+    await db.notificationModel.create(data);
+}
+
+exports.save_notification_user = saveNotificationUser;
+
+saveNotificationVendor = async (data) => {
+    await db.vendorNotificationModel.create(data);
+}
+
+exports.save_notification_vendor = saveNotificationVendor;

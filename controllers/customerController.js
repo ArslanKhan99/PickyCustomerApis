@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../database/connection_make.js');
+const  {sendNotification} = require('./notificationController.js');
 
 exports.login_phone_password = async(req, res, next)=>{
     let {phone, password} = req.body;
@@ -20,17 +21,36 @@ exports.login_phone_password = async(req, res, next)=>{
 exports.register_phone_password = async(req, res, next)=>{
     let usr = req.body;
 
+    let refCode = usr.referal_code;
+    let points = 0;
+    let refered_by_customer = 0;
+
     let eUser = await db.customer.findOne({ where: {phone: usr.phone}});
 
     if (eUser){
         next('User with phone already registered');
         return;
     }
+    if(refCode){
+        let user = await db.customer.findOne({ where: {referal_code: refCode}});
 
-    usr.refer_by_customer = usr.referal_code;
+        if(user){
+            Object.assign(user, {points: `${parseInt(user.points)+10}`});
+            await user.save();
+            await sendNotification(req.firebase_admin, user.id, "Awarded 10 points.", "You have been awarded with 10 points against referral code use by your friend"+usr.phone,"points",0,0);
+            refered_by_customer = user.id;
+            points = 10;
+        }else{
+            next('Invalid reference code');
+            return; // return false
+        }
+    }
+
+    usr.refer_by_customer = refered_by_customer;
     usr.created_at = new Date().getTime();
     usr.updated_at = new Date().getTime();
     usr.user_name = usr.phone;
+    usr.points = points;
 
     usr.referal_code = randomString(9, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
 

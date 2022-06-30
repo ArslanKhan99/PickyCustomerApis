@@ -7,7 +7,7 @@ exports.new_product_category = async(req,res,next) => {
         include: [
             {
                 model: db.productModel,
-                limit: 10,
+                limit: 20,
                 include: [
                     {
                         model: db.product_reviews,
@@ -48,12 +48,12 @@ exports.new_product_category = async(req,res,next) => {
                         as: "delivery_details"
                     },
                 ],
+                order: [
+                    ['id', 'DESC']
+                ]
             }
         ],
         limit: 5,
-        order: [
-            ['id', 'ASC']
-        ]
     });
 
     for(let k = 0; k < cat_products.length; k++) {
@@ -87,6 +87,7 @@ exports.may_like_products = async(req,res,next) => {
     const products = await db.productModel.findAll({
         where: {
             parent_id: 0,
+            status: '3',
             category_id: category_id,
         },
         offset: (page-1)*pageSize,
@@ -161,6 +162,7 @@ exports.all_products = async(req,res,next) => {
     const products = await db.productModel.findAll({
         where: {
             parent_id: 0,
+            status: '3'
         },
         offset: (page-1)*pageSize,
         limit: pageSize,
@@ -234,6 +236,7 @@ exports.recommended_products = async(req,res,next) => {
     const products = await db.productModel.findAll({
         where: {
             parent_id: 0,
+            status: '3'
         },
         offset: (page-1)*pageSize,
         limit: pageSize,
@@ -305,6 +308,7 @@ exports.special_products = async(req,res,next) => {
     const products = await db.productModel.findAll({
         where: {
             parent_id: 0,
+            status: '3'
         },
         offset: (page-1)*pageSize,
         limit: pageSize,
@@ -449,6 +453,7 @@ exports.search_products = async(req,res,next) => {
     const products = await db.productModel.findAll({
         where: {
             parent_id: 0,
+            status: '3',
             [Sequelize.Op.or]: [
                 {
                     product_title: {
@@ -565,6 +570,7 @@ exports.category_sale_products = async(req,res,next) => {
             },
             category_id: id,
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: 10,
@@ -653,6 +659,7 @@ exports.category_products = async(req,res,next) => {
         where: {
             category_id: id,
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: pageSize,
@@ -741,6 +748,7 @@ exports.subcategory_products = async(req,res,next) => {
         where: {
             sub_category_id: id,
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: pageSize,
@@ -843,6 +851,7 @@ exports.category_feature_products = async(req,res,next) => {
             },
             category_id: id,
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: 10,
@@ -943,6 +952,7 @@ exports.all_feature_products = async(req,res,next) => {
                 [Sequelize.Op.in]: productsIds
             },
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: 10,
@@ -1044,6 +1054,7 @@ exports.recent_visited_products = async(req,res,next) => {
                 [Sequelize.Op.in]: productsIds
             },
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: 10,
@@ -1145,6 +1156,7 @@ exports.wishlist_items = async(req,res,next) => {
                 [Sequelize.Op.in]: productsIds
             },
             parent_id: 0,
+            status: '3',
         },
         offset: (page-1)*pageSize,
         limit: 10,
@@ -1230,7 +1242,7 @@ exports.top_sale_products   = async(req,res,next) => {
     page = parseInt(`${page}`);
 
     const products = await db.productModel.findAll({
-        where: {seller_id: usr.id, parent_id: 0},
+        where: {seller_id: usr.id, parent_id: 0, status: '3',},
         offset: (page-1)*pageSize,
         limit: pageSize,
         include: [
@@ -1309,14 +1321,17 @@ exports.product_details = async(req, res, next) => {
     }
 
     const products = await db.productModel.findAll({
-        where: Sequelize.or(
-            {
-                id: id
-            },
-            {
-                parent_id: id
-            }
-        ),
+        where: {
+            status: '3',
+            [Sequelize.Op.or]: [
+                {
+                    id: id
+                },
+                {
+                    parent_id: id
+                }
+            ]
+        },
         include: [
             {
                 model: db.product_reviews,
@@ -1363,10 +1378,15 @@ exports.product_details = async(req, res, next) => {
         ]
     });
 
-    let pModel = await addRatings(products);
+    let pModel = await addRatingsDetail(products);
+
+    let json_data = getFormattedPegging(pModel,1,100);
+    let temp = json_data['products'];
+    json_data.products = undefined;
+    json_data.product = temp;
 
 
-    res.status(200).json(getFormattedPegging(pModel,1,100));
+    res.status(200).json(json_data);
 }
 
 exports.reorder_products = async(req, res, next) => {
@@ -1458,20 +1478,56 @@ exports.reorder_products = async(req, res, next) => {
 //Supporting functions
 
 async function addRatings(products){
+    let spliceIds = [];
     for(let i = 0; i < products.length; i++){
-        let total_rating = 0;
-        let review_count = 0;
-        for(let j = 0; j < products[i].product_reviews.length; j++){
-            total_rating += products[i].product_reviews[j].rating;
-            review_count++;
-            delete products[i].product_reviews[j];
+        if(products[i].parent_id === 0 && `${products[i].status}` === '3') {
+            let total_rating = 0;
+            let review_count = 0;
+            for (let j = 0; j < products[i].product_reviews.length; j++) {
+                total_rating += products[i].product_reviews[j].rating;
+                review_count++;
+                delete products[i].product_reviews[j];
+            }
+            let rating = review_count > 0 ? total_rating / review_count : 0;
+            products[i].setDataValue("rating", parseFloat(rating.toPrecision(2)));
+            products[i].setDataValue("review_count", review_count);
+            products[i].setDataValue("product_reviews", undefined);
+            await products[i].save();
+        }else{
+            spliceIds.push(i);
         }
-        let rating = review_count > 0 ? total_rating/review_count : 0;
-        products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
-        products[i].setDataValue("review_count" , review_count);
-        products[i].setDataValue("product_reviews" , undefined);
-        await products[i].save();
     }
+    for(let i = spliceIds.length -1; i >= 0; i--){
+        products.splice(spliceIds[i],1);
+    }
+    return products;
+}
+
+async function addRatingsDetail(products){
+    let spliceIds = [];
+    for(let i = 0; i < products.length; i++){
+        if(`${products[i].status}` !== '3'){
+            spliceIds.push(i);
+        }else {
+            let total_rating = 0;
+            let review_count = 0;
+            for (let j = 0; j < products[i].product_reviews.length; j++) {
+                total_rating += products[i].product_reviews[j].rating;
+                review_count++;
+                delete products[i].product_reviews[j];
+            }
+            let rating = review_count > 0 ? total_rating / review_count : 0;
+            products[i].setDataValue("rating", parseFloat(rating.toPrecision(2)));
+            products[i].setDataValue("review_count", review_count);
+            products[i].setDataValue("product_reviews", undefined);
+            await products[i].save();
+        }
+    }
+
+    for(let i = spliceIds.length -1; i >= 0; i--){
+        products.splice(spliceIds[i],1);
+    }
+
     return products;
 }
 

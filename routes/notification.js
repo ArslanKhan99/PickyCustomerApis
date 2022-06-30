@@ -18,7 +18,7 @@ router.get('/notifications', auth, notifications);
 
 router.get('/get_unread_notifications_count', auth, get_unread_notifications_count);
 
-router.get('/user_fcm_token', auth, user_fcm_token);
+router.get('/user_fcm_token/:id/:type', auth, user_fcm_token);
 
 router.get('/marke_read_notifications/:id/:status', auth, mark_read_notifications);
 

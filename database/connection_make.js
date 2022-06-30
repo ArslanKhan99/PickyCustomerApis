@@ -1,4 +1,3 @@
-'use strict';
 const config = require('./config/dev.json');
 const mysql = require('mysql');
 const { Sequelize } = require('sequelize');
@@ -39,6 +38,7 @@ const recent_visited_products = require("../models/recent_visited_products.js");
 const customer_whishlist = require("../models/customer_whishlist.js");
 const salesModel = require("../models/salesModel.js");
 const customer_cart = require("../models/customer_cart.js");
+const vendorNotificationModel = require("../models/vendor_notifications.js");
 
 //endModels
 const db = {};
@@ -95,6 +95,7 @@ async function initialize() {
     db.customer_whishlist = customer_whishlist(sequelize);
     db.salesModel = salesModel(sequelize);
     db.customer_cart = customer_cart(sequelize);
+    db.vendorNotificationModel = vendorNotificationModel(sequelize);
 
 
     //products Relation ships start
@@ -183,6 +184,15 @@ async function initialize() {
     db.categories.hasMany(db.productModel, {foreignKey: 'category_id', sourceKey: 'id'});
 
     db.productModel.belongsTo(db.categories, {foreignKey: 'category_id'});
+
+    //categories with products end
+
+
+    //categories with sub categories start
+
+    db.categories.hasMany(db.sub_categories, {foreignKey: 'category_id', sourceKey: 'id'});
+
+    db.sub_categories.belongsTo(db.categories, {foreignKey: 'category_id'});
 
     //categories with products end
 

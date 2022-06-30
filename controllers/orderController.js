@@ -1,4 +1,5 @@
 const db = require('../database/connection_make.js');
+const {sendNotification} = require('./notificationController.js');
 
 exports.order_by_status = async (req,res,next) => {
     let usr = req.user;
@@ -221,6 +222,8 @@ exports.change_order_status = async (req,res,next) => {
 
     await status_order.save();
 
+    await sendNotification(req.firebase_admin, usr.id, "Order Status changed", "Your order status is changed", "order", status_order.id, 0);
+
     res.status(200).json({message: "Order Status changed successfully"});
 }
 
@@ -274,7 +277,12 @@ exports.add_order_review = async (req, res, next) => {
 
     await db.order_reviews.create(data);
 
-    res.status(200).json({message: "review successfully created"});
+    let usr  = await db.customer.findByPk(user.id);
+
+    Object.assign(usr, {points: `${parseInt(usr.points)+10}`});
+    await usr.save();
+
+    res.status(200).json({message: "review successfully created for user "+usr.id});
 }
 
 exports.checkout = async (req,res,next) => {
@@ -450,13 +458,13 @@ exports.cart_items = async (req,res,next) => {
         products.push(pro);
     }
 
-    let pModel = await addRatings(products);
+    let pModel = await addRatingsCart(products);
 
     res.status(200).json({message: "Cart", products: pModel});
 
 }
 
-async function addRatings(products){
+async function addRatingsCart(products){
     for(let i = 0; i < products.length; i++){
         let total_rating = 0;
         let review_count = 0;
@@ -468,12 +476,13 @@ async function addRatings(products){
         let rating = review_count > 0 ? total_rating/review_count : 0;
         products[i].setDataValue("rating" , parseFloat(rating.toPrecision(2)));
         products[i].setDataValue("review_count" , review_count);
+        products[i].setDataValue("vendor" , products[i].vendors);
         products[i].setDataValue("product_reviews" , undefined);
+        products[i].setDataValue("vendors" , undefined);
         await products[i].save();
     }
     return products;
 }
-
 
 exports.remove_cart = async (req,res,next) => {
     let user = req.user;
