@@ -170,13 +170,13 @@ async function initialize() {
 
     db.orderDetailModel.belongsTo(db.orderModel, {foreignKey:"order_id"});
 
-    db.orderDetailModel.hasOne(db.productModel, {foreignKey:"id"});
+    db.orderDetailModel.hasOne(db.productModel, {foreignKey:"id", sourceKey: "product_id"});
 
-    db.orderDetailModel.hasOne(db.product_images, {foreignKey:"product_id"});
+    db.orderDetailModel.hasOne(db.product_images, {foreignKey:"product_id", sourceKey: "product_id"});
 
-    db.productModel.belongsTo(db.orderDetailModel, {foreignKey:"id"});
+    db.productModel.belongsTo(db.orderDetailModel, {foreignKey:"id", sourceKey: "product_id" });
 
-    db.product_images.belongsTo(db.orderDetailModel, {foreignKey:"product_id"});
+    db.product_images.belongsTo(db.orderDetailModel, {foreignKey:"product_id", sourceKey: "product_id"});
 
 
     //categories with products start
