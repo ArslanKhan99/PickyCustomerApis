@@ -87,6 +87,11 @@ exports.order_details = async (req,res,next) => {
         }
     );
 
+    if(!orderModel){
+        next("No order model found");
+        return;
+    }
+
     for (let i = 0; i < orderModel.order_details.length; i++) {
         if(orderModel.order_details[i].product === null || orderModel.order_details[i].product.product_title === null || orderModel.order_details[i].product.product_title === undefined) {
             orderModel.order_details[i].setDataValue('product_title', "N/A");
@@ -308,6 +313,7 @@ exports.checkout = async (req,res,next) => {
         'payment_method':data.payment_method,
         'transaction_no':'',
         'payment_status':"pending",
+        'paid_amount' : 0,
         'status': data.payment_method.toLowerCase() === "cod" ? "1" : "0",
         'ordered_at': new Date().getTime(),
     };

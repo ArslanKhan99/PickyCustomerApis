@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const dotEnv = require('dotenv');
 const admin = require("firebase-admin");
+const cors = require('cors');
 
 //routes
 const bannerRoutes = require('./routes/banner.js');
@@ -52,7 +53,7 @@ dotEnv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
+app.use(cors());
 
 app.post('/api/uploadImage', uploadMulter.single('photo'), uploadImage);
 

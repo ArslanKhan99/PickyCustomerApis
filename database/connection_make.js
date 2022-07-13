@@ -164,9 +164,9 @@ async function initialize() {
 
     db.customer.belongsTo(db.orderModel, {foreignKey: "id"});
 
-    db.orderModel.hasOne(db.vendor, {foreignKey: "id"});
+    db.orderModel.hasOne(db.vendor, {foreignKey: "id", sourceKey: "seller_id"});
 
-    db.vendor.belongsTo(db.orderModel, {foreignKey: "id"});
+    db.vendor.belongsTo(db.orderModel, {foreignKey: "id", sourceKey: "seller_id"});
 
     db.orderDetailModel.belongsTo(db.orderModel, {foreignKey:"order_id"});
 

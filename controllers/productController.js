@@ -1492,6 +1492,8 @@ async function addRatings(products){
             products[i].setDataValue("rating", parseFloat(rating.toPrecision(2)));
             products[i].setDataValue("review_count", review_count);
             products[i].setDataValue("product_reviews", undefined);
+            products[i].setDataValue("vendor", products[i].vendors);
+            products[i].setDataValue("vendors", undefined);
             await products[i].save();
         }else{
             spliceIds.push(i);
