@@ -210,6 +210,12 @@ async function initialize() {
 
     db.productModel.belongsTo(db.customer_cart, {foreignKey: 'id', sourceKey: 'product_id'});
 
+    //vendor vs order_reviews
+
+    db.vendor.hasMany(db.order_reviews, {foreignKey: 'vendor_id', sourceKey: 'id'});
+
+    db.order_reviews.belongsTo(db.vendor, {foreignKey: 'vendor_id', sourceKey: 'id'});
+
     //end order vs reviews
     // sync all models with database
     await sequelize.sync();
