@@ -4,11 +4,30 @@ exports.apply_promo_code = async (req, res, next) => {
     let user = req.user;
     let code = req.params.code;
     let amount = req.query.amount;
+    let seller_id = req.query.seller_id;
+
+    if(!seller_id){
+        seller_id = 0;
+    }
 
     const promo_code = await db.promo_codes.findOne({where: {status: 'live', code: code}});
 
     if(!promo_code){
         next('Promo Code not found or expired');
+        return;
+    }
+
+    let all_sellers = (promo_code.for_vendor_ids??"-1").split(",");
+    let isExist = false;
+
+    for(let i = 0; i < all_sellers.length; i++){
+        if(`${all_sellers[i]}` === `${seller_id}`){
+            isExist = true;
+        }
+    }
+
+    if(!isExist){
+        next("Promo code can't apply on this seller.");
         return;
     }
 

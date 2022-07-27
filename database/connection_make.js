@@ -30,7 +30,6 @@ const categories = require("../models/categories.js");
 const sub_categories = require("../models/sub_categories.js");
 const colorsModel = require("../models/colors.js");
 const sizesModel = require("../models/sizes.js");
-const notificationModel = require("../models/notification.js");
 const promo_codes = require("../models/promo_codes.js");
 const clamed_promo_codes = require("../models/clamed_promo_codes.js");
 const feature_products = require("../models/feature_products.js");
@@ -39,6 +38,7 @@ const customer_whishlist = require("../models/customer_whishlist.js");
 const salesModel = require("../models/salesModel.js");
 const customer_cart = require("../models/customer_cart.js");
 const vendorNotificationModel = require("../models/vendor_notifications.js");
+const notificationModel = require("../models/notification.js");
 
 //endModels
 const db = {};
@@ -87,7 +87,6 @@ async function initialize() {
     db.sub_categories = sub_categories(sequelize);
     db.colorsModel = colorsModel(sequelize);
     db.sizesModel = sizesModel(sequelize);
-    db.notificationModel = notificationModel(sequelize);
     db.promo_codes = promo_codes(sequelize);
     db.clamed_promo_codes = clamed_promo_codes(sequelize);
     db.feature_products = feature_products(sequelize);
@@ -96,6 +95,8 @@ async function initialize() {
     db.salesModel = salesModel(sequelize);
     db.customer_cart = customer_cart(sequelize);
     db.vendorNotificationModel = vendorNotificationModel(sequelize);
+    db.notificationModel = notificationModel(sequelize);
+
 
 
     //products Relation ships start

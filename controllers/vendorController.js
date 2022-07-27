@@ -102,6 +102,39 @@ exports.seller_details = async(req,res, next) => {
 
 }
 
+exports.getRestaurants = async(req,res, next) => {
+    let id = req.query.id;
+
+    const restaurants = await db.vendor.scope('withHash').findAll(
+        {
+            where:{
+                [Sequelize]
+            }
+        }
+    );
+
+    // const reviews = await db.product_reviews.findAll({where: {seller_id: vendor.id}});
+    //
+    // let rating = 0;
+    // let ratingTotal = 0;
+    // let review_count = 0;
+    //
+    // reviews.forEach((review) => {
+    //    review_count++;
+    //    ratingTotal += review.rating;
+    // });
+    //
+    // if(review_count > 0){
+    //     rating = (ratingTotal / review_count);
+    // }
+    //
+    // vendor.setDataValue('rating', parseFloat(rating.toFixed(2))+1/100);
+    // vendor.setDataValue('review_count', review_count);
+
+    res.status(200).json({message: "Vendor information", restaurants: restaurants});
+
+}
+
 async function addRatings(products){
     let spliceIds = [];
     for(let i = 0; i < products.length; i++){

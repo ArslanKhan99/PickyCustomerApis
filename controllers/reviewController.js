@@ -88,6 +88,10 @@ exports.product_reviews = async (req,res,next) => {
         ]
     });
 
+    for(let i = 0; i < reviews.length; i++) {
+        reviews[i].setDataValue('user', [reviews[i].user]);
+    }
+
     res.status(200).json(getFormattedPegging(reviews,page,pageSize));
 
 }

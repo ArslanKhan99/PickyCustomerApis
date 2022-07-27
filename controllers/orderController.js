@@ -168,11 +168,11 @@ exports.check_delivery_in_area = async (req,res,next) => {
             }
         }
     }else{
-        res.status(400).json({message: "User do not have any delivery area", status: false});
+        res.status(400).json({message: "User do not have any delivery area", status: false, delivery_areas: []});
         return;
     }
 
-    res.status(200).json({message: exists ? "User Can deliver in this area":"Seller can not deliver in this area.", status: exists});
+    res.status(200).json({message: exists ? "User Can deliver in this area":"Seller can not deliver in this area.", status: exists, delivery_areas: delivery_areas.areas.split(',')});
 }
 
 exports.change_payment_method = async (req,res,next) => {

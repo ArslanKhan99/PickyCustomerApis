@@ -6,6 +6,7 @@ const {
     all_products,
     search_products,
     recommended_products,
+    recommended_products_detail,
     category_sale_products,
     category_feature_products,
     all_feature_products,
@@ -42,6 +43,8 @@ router.get('/special_products', special_products);
 router.get('/search_products', search_products);
 
 router.get('/recommended_products', recommended_products);
+
+router.get('/recommended_products_detail', recommended_products_detail);
 
 router.get('/category_sale_products/:id', category_sale_products);
 

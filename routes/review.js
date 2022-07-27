@@ -27,7 +27,7 @@ function addReviewSchema(req, res, next) {
         date_time: Joi.string().required(),
         rating: Joi.number().required(),
         review: Joi.string().required(),
-        images: Joi.string()
+        images: Joi.string().optional().allow(null).allow('').empty('').default("n/a")
     });
     validateRequest(req, next, schema);
 }

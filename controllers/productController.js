@@ -290,6 +290,145 @@ exports.recommended_products = async(req,res,next) => {
 
 }
 
+exports.recommended_products_detail = async(req,res,next) => {
+    let page = req.query.page;
+    let pageSize = req.query.pageSize;
+    let product_id = req.query.product_id;
+
+    if(!product_id){
+        product_id = 1;
+    }
+
+    let productCurrent = await db.productModel.findByPk(product_id, {attributes: ['category_id']});
+
+    let category_id = 1;
+
+    if(productCurrent){
+        category_id = productCurrent.category_id??1
+    }
+
+    if(!page){
+        page = 1;
+    }
+
+    if(!pageSize){
+        pageSize = 10;
+    }
+
+    pageSize = parseInt(`${pageSize}`);
+    page = parseInt(`${page}`);
+
+    let products = await db.productModel.findAll({
+        where: {
+            parent_id: 0,
+            status: '3',
+            category_id: category_id
+        },
+        offset: (page-1)*pageSize,
+        limit: pageSize,
+        include: [
+            {
+                model: db.product_reviews,
+                required: false,
+            },
+            {
+                required: false,
+                model: db.vendor
+            },
+            {
+                required: false,
+                model: db.product_images,
+                as: 'images'
+            },
+            {
+                required: false,
+                model: db.product_colors
+            },
+            {
+                required: false,
+                model: db.product_sizes
+            },
+            {
+                required: false,
+                model: db.product_specs
+            },
+            {
+                required: false,
+                model: db.product_adons
+            },
+            {
+                required: false,
+                model: db.ingredients
+            },
+            {
+                required: false,
+                model: db.product_delivery_details,
+                as: "delivery_details"
+            },
+        ],
+        raw: false,
+        order: Sequelize.literal('rand()')
+    });
+
+    if(!products || products.length <= 0) {
+        products = await db.productModel.findAll({
+            where: {
+                parent_id: 0,
+                status: '3',
+            },
+            offset: (page-1)*pageSize,
+            limit: pageSize,
+            include: [
+                {
+                    model: db.product_reviews,
+                    required: false,
+                },
+                {
+                    required: false,
+                    model: db.vendor
+                },
+                {
+                    required: false,
+                    model: db.product_images,
+                    as: 'images'
+                },
+                {
+                    required: false,
+                    model: db.product_colors
+                },
+                {
+                    required: false,
+                    model: db.product_sizes
+                },
+                {
+                    required: false,
+                    model: db.product_specs
+                },
+                {
+                    required: false,
+                    model: db.product_adons
+                },
+                {
+                    required: false,
+                    model: db.ingredients
+                },
+                {
+                    required: false,
+                    model: db.product_delivery_details,
+                    as: "delivery_details"
+                },
+            ],
+            raw: false,
+            order: Sequelize.literal('rand()')
+        });
+    }
+
+    let pModel = await addRatings(products);
+
+    res.status(200).json(getFormattedPegging(pModel,page,pageSize));
+
+}
+
 exports.special_products = async(req,res,next) => {
     let page = req.query.page;
     let pageSize = req.query.pageSize;
@@ -1522,6 +1661,8 @@ async function addRatingsDetail(products){
             products[i].setDataValue("rating", parseFloat(rating.toPrecision(2)));
             products[i].setDataValue("review_count", review_count);
             products[i].setDataValue("product_reviews", undefined);
+            products[i].setDataValue("vendor", products[i].vendors);
+            products[i].setDataValue("vendors", undefined);
             await products[i].save();
         }
     }
