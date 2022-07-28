@@ -330,6 +330,8 @@ exports.checkout = async (req,res,next) => {
         await db.orderDetailModel.create(data.products[i]);
     }
 
+    await sendNotification(req.firebase_admin, data.seller_id, "New Order Received", "You got new order from"+data.full_name,"order", result_order_create.id, 1);
+
     res.status(200).json({message: "Order created successfully", order_id: result_order_create.id});
 }
 
